@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+#
+# To use:
+# 1. Create the directory ~/.snippy
+#
+# 2. Create a file in that directory for each snippet that you want.
+#    The filename will be used as a menu item, so you might want to
+#    omit the file extension when you name the file. 
+#
+#    TIP: If you have a lot of snippets, you can organise them into 
+#    subdirectories under ~/.snippy.
+#
+#    TIP: The contents of the file will be pasted asis, so if you 
+#    don't want a newline at the end when the text is pasted, don't
+#    put one in the file. You can insert dynamic shellscript using $(date) e.g.
+#
+# 3. Bind a convenient key combination to this script.
+#
+#    TIP: If you're using XMonad, add something like this to xmonad.hs
+#      ((mod4Mask, xK_s), spawn "/path/to/snippy")
+
+declare -A MYSNIPPETS
+SNIPDIR=~/.snippy
+MAXLINES=15
+
+list(){ find -L "$SNIPDIR" -type f | grep -v '^\.$' | sed 's!\.\/!!' | xargs -n1 basename; }
+
+if [ -z "$@" ]
+then
+    echo -en "\x00prompt\x1fSnippet\n"
+    echo -en "\0markup-rows\x1ftrue\n"
+    echo -en "\0message\x1fselect snippet to expand\n"
+
+    list 
+    echo "quit"
+else
+  snippet=$@
+  test $snippet = "quit" && exit 0
+  file=$SNIPDIR/$snippet
+  if [ -f $file ]
+  then
+    x="$(cat $file | head -n$MAXLINES | sed 's/"/\\\"/g;s/.*/echo "&"/e')"   # evaluate file
+    coproc (echo -n "$x" | xdotool type --clearmodifiers --file -)
+  fi
+fi
